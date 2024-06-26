@@ -25,6 +25,7 @@ When responding with file content, please format your output exactly as follows:
 
 Here's an example of the correct format:
 
+```
 ========================================
 File: example/hello.py
 ========================================
@@ -51,6 +52,6 @@ Content:
 
 
 ########################################
-
+```
 
 Please follow this format exactly for any file content you provide. This ensures that the output can be correctly processed by the f2llm tool's generate function.
