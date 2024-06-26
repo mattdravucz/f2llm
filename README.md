@@ -26,9 +26,9 @@ When responding with file content, please format your output exactly as follows:
 Here's an example of the correct format:
 
 ```
-========================================
+'='*40
 File: example/hello.py
-========================================
+'='*40
 Content:
 def hello():
     print("Hello, world!")
@@ -37,12 +37,12 @@ if __name__ == "__main__":
     hello()
 
 
-########################################
+'#'*40
 
 
-========================================
+'='*40
 File: example/data/config.json
-========================================
+'='*40
 Content:
 {
     "version": "1.0",
@@ -51,7 +51,7 @@ Content:
 }
 
 
-########################################
+'#'*40
 ```
 
 Please follow this format exactly for any file content you provide. This ensures that the output can be correctly processed by the f2llm tool's generate function.

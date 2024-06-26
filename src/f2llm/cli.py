@@ -5,13 +5,32 @@ import fnmatch
 import re
 
 def parse_gitignore(gitignore_path):
-    if not os.path.exists(gitignore_path):
-        return []
-    with open(gitignore_path, 'r') as f:
-        return [line.strip() for line in f if line.strip() and not line.startswith('#')]
+    ignore_patterns = []
+    if os.path.exists(gitignore_path):
+        with open(gitignore_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    ignore_patterns.append(line)
+    
+    # Always ignore .git directory
+    ignore_patterns.append('.git/')
+    
+    return ignore_patterns
 
 def should_ignore(path, ignore_patterns):
-    return any(fnmatch.fnmatch(path, pattern) for pattern in ignore_patterns)
+    path_parts = path.split(os.sep)
+    for pattern in ignore_patterns:
+        if pattern.endswith('/'):
+            if any(fnmatch.fnmatch(part, pattern[:-1]) for part in path_parts):
+                return True
+        elif '/' in pattern:
+            if fnmatch.fnmatch(path, pattern):
+                return True
+        else:
+            if fnmatch.fnmatch(os.path.basename(path), pattern):
+                return True
+    return False
 
 def parse_folder(input_folder, output_file):
     output_file = os.path.abspath(output_file)
@@ -20,6 +39,11 @@ def parse_folder(input_folder, output_file):
 
     with open(output_file, 'w', encoding='utf-8') as out_file:
         for root, dirs, files in os.walk(input_folder):
+            # Use list() to create a copy of dirs, so we can modify it
+            for dir in list(dirs):
+                if should_ignore(os.path.relpath(os.path.join(root, dir), input_folder), ignore_patterns):
+                    dirs.remove(dir)
+            
             for file in files:
                 file_path = os.path.join(root, file)
                 relative_path = os.path.relpath(file_path, input_folder)

@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "f2llm"
+version = "0.1.0"
 authors = [
     {name = "Mate Dravucz"},
 ]
@@ -18,7 +19,6 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = []
-dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://github.com/mattdravucz/f2llm"
