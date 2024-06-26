@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "f2llm"
+authors = [
+    {name = "Mate Dravucz"},
+]
+description = "A CLI tool to parse files and create LLM prompts"
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["cli", "llm", "file parsing"]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = []
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/mattdravucz/f2llm"
+Issues = "https://github.com/mattdravucz/f2llm/issues"
+
+[project.scripts]
+f2llm = "f2llm.cli:main"
+
+[tool.setuptools_scm]
+write_to = "src/f2llm/_version.py"
+
+[tool.setuptools.packages.find]
+where = ["src"]
