@@ -10,6 +10,10 @@
    f2llm --generate /path/to/input/file.txt /path/to/output/folder
    ```
 
+# Install
+```
+   pip install f2llm
+```
 
 ### System Prompt
 
