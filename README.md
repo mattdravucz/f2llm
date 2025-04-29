@@ -15,4 +15,18 @@
    pip install f2llm
 ```
 
-Please follow this format exactly for any file content you provide. This ensures that the output can be correctly processed by the f2llm tool's generate function.
+### Versioning
+
+1. Create a **Git tag** at the version you want, e.g.:
+    
+    ```
+    git tag v0.2.0
+    git push origin v0.2.0
+    ```
+    
+2. Go to **Actions ➔ Release ➔ Run workflow** in GitHub’s UI.
+    
+3. Select your branch (e.g. `main`) and click **Run workflow**.
+    
+
+The workflow will read the version (`v0.2.0`) via setuptools_scm, build, and upload — but **only** when you trigger it.
