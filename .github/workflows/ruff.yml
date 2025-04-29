@@ -31,4 +31,4 @@ jobs:
 
       - name: Run Ruff (auto-format)
         run: |
-          ruff format src/ --fix
+          ruff format src/
