@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "f2llm"
+dynamic = ["version"]
 authors = [
     {name = "Mate Dravucz"},
 ]
