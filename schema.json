@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "properties": {
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Full relative path of the file in the project structure, including filename and extension."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Short description or notes about this file, such as purpose, changes, or special considerations."
+          },
+          "content": {
+            "type": "string",
+            "description": "The actual content of the code file. Should be wrapped in triple backticks and specify the language after the backticks if needed."
+          }
+        },
+        "required": ["file_path", "content"]
+      }
+    }
+  },
+  "required": ["files"]
+}

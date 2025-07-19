@@ -18,7 +18,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = []
+dependencies = ["pathspec>=0.11.1"]
 
 [project.urls]
 Homepage = "https://github.com/mattdravucz/f2llm"
