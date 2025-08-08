@@ -5,8 +5,6 @@ import re
 import json
 import pathspec
 
-MARKER = "//F2LLM//"
-
 
 def load_gitignore_spec(gitignore_path):
     if not os.path.exists(gitignore_path):
@@ -18,41 +16,8 @@ def load_gitignore_spec(gitignore_path):
     return pathspec.PathSpec.from_lines("gitwildmatch", lines)
 
 
-def parse_folder_to_txt(input_folder, output_file, spec):
-    output_file = os.path.abspath(output_file)
-
-    with open(output_file, "w", encoding="utf-8") as out_file:
-        for root, dirs, files in os.walk(input_folder):
-            rel_root = os.path.relpath(root, input_folder)
-            if rel_root == ".":
-                rel_root = ""
-
-            dirs[:] = [
-                d for d in dirs
-                if not (spec and spec.match_file(os.path.normpath(os.path.join(rel_root, d))))
-            ]
-
-            for file in files:
-                file_path = os.path.join(root, file)
-                relative_path = os.path.normpath(os.path.join(rel_root, file))
-
-                if os.path.abspath(file_path) == output_file:
-                    continue
-                if spec and spec.match_file(relative_path):
-                    continue
-
-                out_file.write(f"{MARKER} {relative_path}\n")
-
-                try:
-                    with open(file_path, "r", encoding="utf-8") as in_file:
-                        out_file.write(in_file.read())
-                except Exception as e:
-                    out_file.write(f"Error reading file: {str(e)}")
-
-                out_file.write("\n")
-
-
 def parse_folder_to_json(input_folder, output_file, spec):
+    """Parse folder structure into JSON format."""
     output = {"files": []}
     for root, dirs, files in os.walk(input_folder):
         rel_root = os.path.relpath(root, input_folder)
@@ -79,9 +44,9 @@ def parse_folder_to_json(input_folder, output_file, spec):
             except Exception as e:
                 content = f"Error reading file: {str(e)}"
 
-            # Infer language from extension
-            ext = os.path.splitext(file)[1].lstrip(".")
-            lang = ext if ext else ""
+            # wrap with code fences
+            ext = os.path.splitext(file)[1].lstrip('.')
+            lang = ext if ext else ''
             wrapped_content = f"```{lang}\n{content}\n```"
 
             output["files"].append({
@@ -96,97 +61,94 @@ def parse_folder_to_json(input_folder, output_file, spec):
     print(f"Parsing complete. JSON written to {output_file}")
 
 
-def generate_files_from_txt(input_file, output_folder):
-    os.makedirs(output_folder, exist_ok=True)
-
-    with open(input_file, "r", encoding="utf-8") as in_file:
-        content = in_file.read()
-
-    file_sections = re.split(
-        rf"^{re.escape(MARKER)} (.+)$", content, flags=re.MULTILINE
-    )
-
-    for i in range(1, len(file_sections), 2):
-        relative_path = file_sections[i].strip()
-        file_content = file_sections[i + 1].lstrip("\n")
-
-        full_path = os.path.join(output_folder, relative_path)
-        os.makedirs(os.path.dirname(full_path), exist_ok=True)
-
-        with open(full_path, "w", encoding="utf-8") as out_file:
-            out_file.write(file_content)
-
-    print(f"Files generated in {output_folder}")
-
-
-def generate_files_from_json(input_file, output_folder):
-    with open(input_file, "r", encoding="utf-8") as f:
+def apply_changes_from_json(input_file, repo_folder):
+    """Apply changes described in a JSON file with the schema."""
+    with open(input_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-    for file_info in data.get("files", []):
-        path = os.path.join(output_folder, file_info["file_path"])
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+    # Handle moved files
+    for move_info in data.get('moved_files', []):
+        old_path = os.path.join(repo_folder, move_info['old_path'])
+        new_path = os.path.join(repo_folder, move_info['new_path'])
+        
+        if os.path.exists(old_path):
+            # Create directory for new path if needed
+            os.makedirs(os.path.dirname(new_path), exist_ok=True)
+            # Move the file
+            os.rename(old_path, new_path)
+            print(f"Moved: {move_info['old_path']} -> {move_info['new_path']}")
 
-        # Extract content inside triple backticks if present
-        content = file_info["content"]
-        match = re.search(r"```(?:\w+)?\n(.*?)\n```", content, flags=re.DOTALL)
-        if match:
-            content = match.group(1)
+    # Handle deleted files
+    for file_info in data.get('deleted_files', []):
+        if isinstance(file_info, dict):
+            rel_path = file_info['file_path']
+        else:
+            # Handle legacy format where deleted_files was array of strings
+            rel_path = file_info
+            
+        full_path = os.path.join(repo_folder, rel_path)
+        if os.path.exists(full_path):
+            os.remove(full_path)
+            print(f"Deleted: {rel_path}")
 
-        with open(path, "w", encoding="utf-8") as out_file:
-            out_file.write(content)
+    # Handle modified and added files
+    for section in ('modified_files', 'added_files'):
+        for file_info in data.get(section, []):
+            rel_path = file_info['file_path']
+            content = file_info['content']
+            
+            # unwrap code fences if present
+            m = re.search(r"```(?:\w+)?\n(.*?)\n```", content, flags=re.DOTALL)
+            if m:
+                content = m.group(1)
 
-    print(f"Files generated in {output_folder}")
+            full_path = os.path.join(repo_folder, rel_path)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, 'w', encoding='utf-8') as out_file:
+                out_file.write(content)
+            print(f"Written: {rel_path} ({section})")
+
+    print("Apply complete.")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Parse files to prompt format or generate files from a prompt definition."
+        description="F2LLM - Parse folder to JSON or apply JSON changes to folder."
     )
     parser.add_argument(
         "input",
-        help="Input folder path (for parsing) or input file path (for generation).",
+        help="Input folder (for parsing) or JSON file (for applying changes)."
     )
     parser.add_argument(
-        "output",
-        help="Output file path (for parsing) or output folder path (for generation).",
+        "output", 
+        help="Output JSON file (for parsing) or target folder (for applying changes)."
     )
     parser.add_argument(
-        "--generate",
-        action="store_true",
-        help="Generate files from parsed content instead of parsing.",
-    )
-    parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Use JSON format instead of plain text markers.",
+        "--apply",
+        action="store_true", 
+        help="Apply changes from JSON to folder instead of parsing folder to JSON."
     )
 
     args = parser.parse_args()
 
-    if args.generate:
+    if args.apply:
+        # Apply mode: input is JSON file, output is target folder
         if not os.path.isfile(args.input):
             print(f"Error: {args.input} is not a valid file.")
             sys.exit(1)
-
-        if args.json:
-            generate_files_from_json(args.input, args.output)
-        else:
-            generate_files_from_txt(args.input, args.output)
+        if not os.path.isdir(args.output):
+            print(f"Error: {args.output} is not a valid directory.")
+            sys.exit(1)
+        apply_changes_from_json(args.input, args.output)
     else:
+        # Parse mode: input is folder, output is JSON file
         if not os.path.isdir(args.input):
             print(f"Error: {args.input} is not a valid directory.")
             sys.exit(1)
 
         gitignore_path = os.path.join(args.input, ".gitignore")
         spec = load_gitignore_spec(gitignore_path)
-
-        if args.json:
-            parse_folder_to_json(args.input, args.output, spec)
-        else:
-            parse_folder_to_txt(args.input, args.output, spec)
-
-        print(f"Parsing complete. Output written to {args.output}")
+        parse_folder_to_json(args.input, args.output, spec)
 
 
 if __name__ == "__main__":
