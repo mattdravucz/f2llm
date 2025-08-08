@@ -62,30 +62,12 @@ def parse_folder_to_json(input_folder, output_file, spec):
 
 
 def apply_changes_from_json(input_file, repo_folder):
-    """Apply changes described in a JSON file with the schema."""
+    """Apply changes described in a JSON file with the simplified schema."""
     with open(input_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-    # Handle moved files
-    for move_info in data.get('moved_files', []):
-        old_path = os.path.join(repo_folder, move_info['old_path'])
-        new_path = os.path.join(repo_folder, move_info['new_path'])
-        
-        if os.path.exists(old_path):
-            # Create directory for new path if needed
-            os.makedirs(os.path.dirname(new_path), exist_ok=True)
-            # Move the file
-            os.rename(old_path, new_path)
-            print(f"Moved: {move_info['old_path']} -> {move_info['new_path']}")
-
-    # Handle deleted files
-    for file_info in data.get('deleted_files', []):
-        if isinstance(file_info, dict):
-            rel_path = file_info['file_path']
-        else:
-            # Handle legacy format where deleted_files was array of strings
-            rel_path = file_info
-            
+    # Handle deleted files (now just strings)
+    for rel_path in data.get('deleted_files', []):
         full_path = os.path.join(repo_folder, rel_path)
         if os.path.exists(full_path):
             os.remove(full_path)
@@ -107,6 +89,11 @@ def apply_changes_from_json(input_file, repo_folder):
             with open(full_path, 'w', encoding='utf-8') as out_file:
                 out_file.write(content)
             print(f"Written: {rel_path} ({section})")
+
+    # Note: unchanged_files are listed but no action needed
+    unchanged_count = len(data.get('unchanged_files', []))
+    if unchanged_count > 0:
+        print(f"Unchanged files: {unchanged_count}")
 
     print("Apply complete.")
 

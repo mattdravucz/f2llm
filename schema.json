@@ -41,25 +41,6 @@
         }
       }
     },
-    "moved_files": {
-      "type": "array",
-      "description": "Files that were moved or renamed; include old and new paths with notes.",
-      "items": {
-        "type": "object",
-        "required": ["old_path", "new_path"],
-        "properties": {
-          "old_path": {
-            "type": "string"
-          },
-          "new_path": {
-            "type": "string"
-          },
-          "notes": {
-            "type": "string"
-          }
-        }
-      }
-    },
     "unchanged_files": {
       "type": "array",
       "description": "Unchanged files; only list their paths.",
@@ -69,21 +50,11 @@
     },
     "deleted_files": {
       "type": "array",
-      "description": "Deleted files; include paths and reason for deletion.",
+      "description": "Deleted files; only list their paths.",
       "items": {
-        "type": "object",
-        "required": ["file_path", "notes"],
-        "properties": {
-          "file_path": {
-            "type": "string"
-          },
-          "notes": {
-            "type": "string",
-            "description": "Reason for deletion."
-          }
-        }
+        "type": "string"
       }
     }
   },
-  "required": ["modified_files", "added_files", "moved_files", "unchanged_files", "deleted_files"]
+  "required": ["modified_files", "added_files", "unchanged_files", "deleted_files"]
 }
