@@ -61,6 +61,39 @@ def parse_folder_to_json(input_folder, output_file, spec):
     print(f"Parsing complete. JSON written to {output_file}")
 
 
+def generate_folder_from_json(input_file, output_folder):
+    """Generate folder structure from JSON format (reverse of parse)."""
+    with open(input_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    # Create the output folder if it doesn't exist
+    os.makedirs(output_folder, exist_ok=True)
+
+    for file_info in data.get('files', []):
+        rel_path = file_info['file_path']
+        content = file_info['content']
+        
+        # unwrap code fences if present
+        m = re.search(r"```(?:\w+)?\n(.*?)\n```", content, flags=re.DOTALL)
+        if m:
+            content = m.group(1)
+
+        full_path = os.path.join(output_folder, rel_path)
+        
+        # Create directory structure if needed
+        dir_path = os.path.dirname(full_path)
+        if dir_path:
+            os.makedirs(dir_path, exist_ok=True)
+        
+        # Write the file
+        with open(full_path, 'w', encoding='utf-8') as out_file:
+            out_file.write(content)
+        
+        print(f"Generated: {rel_path}")
+
+    print(f"Generation complete. Folder structure created in {output_folder}")
+
+
 def apply_changes_from_json(input_file, repo_folder):
     """Apply changes described in a JSON file with the simplified schema."""
     with open(input_file, 'r', encoding='utf-8') as f:
@@ -100,23 +133,33 @@ def apply_changes_from_json(input_file, repo_folder):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="F2LLM - Parse folder to JSON or apply JSON changes to folder."
+        description="F2LLM - Parse folder to JSON, generate folder from JSON, or apply JSON changes to folder."
     )
     parser.add_argument(
         "input",
-        help="Input folder (for parsing) or JSON file (for applying changes)."
+        help="Input folder (for parsing), JSON file (for generating/applying changes)."
     )
     parser.add_argument(
         "output", 
-        help="Output JSON file (for parsing) or target folder (for applying changes)."
+        help="Output JSON file (for parsing) or target folder (for generating/applying changes)."
     )
     parser.add_argument(
         "--apply",
         action="store_true", 
-        help="Apply changes from JSON to folder instead of parsing folder to JSON."
+        help="Apply changes from JSON to folder (expects change-based JSON schema)."
+    )
+    parser.add_argument(
+        "--generate",
+        action="store_true",
+        help="Generate folder structure from JSON (reverse of parse operation)."
     )
 
     args = parser.parse_args()
+
+    # Check for conflicting options
+    if args.apply and args.generate:
+        print("Error: Cannot use --apply and --generate together.")
+        sys.exit(1)
 
     if args.apply:
         # Apply mode: input is JSON file, output is target folder
@@ -127,6 +170,12 @@ def main():
             print(f"Error: {args.output} is not a valid directory.")
             sys.exit(1)
         apply_changes_from_json(args.input, args.output)
+    elif args.generate:
+        # Generate mode: input is JSON file, output is target folder
+        if not os.path.isfile(args.input):
+            print(f"Error: {args.input} is not a valid file.")
+            sys.exit(1)
+        generate_folder_from_json(args.input, args.output)
     else:
         # Parse mode: input is folder, output is JSON file
         if not os.path.isdir(args.input):
